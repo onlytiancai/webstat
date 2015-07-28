@@ -3,7 +3,7 @@ var winston = require('winston');
 var config = require('config');
 
 winston.handleExceptions(new winston.transports.File({
-    filename: config.get('logpath.exception'),
+    filename: config.get('log.exception_path'),
     json: false
 }));
 
@@ -11,7 +11,7 @@ var logger = new(winston.Logger)({
     transports: [
         new(winston.transports.Console)(),
         new(winston.transports.File)({
-            filename: config.get('logpath.log'),
+            filename: config.get('log.log_path'),
             maxsize: 1024 * 1024 * 10, // 10MB
             maxFiles: 3,
             json: false,
