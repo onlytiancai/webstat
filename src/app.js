@@ -1,15 +1,29 @@
 var http = require('http');
 var winston = require('winston');
+var config = require('config');
 
 winston.handleExceptions(new winston.transports.File({
-    filename: 'exception.log'
-}))
+    filename: config.get('logpath.exception'),
+    json: false
+}));
 
 var logger = new(winston.Logger)({
     transports: [
         new(winston.transports.Console)(),
         new(winston.transports.File)({
-            filename: 'log.log'
+            filename: config.get('logpath.log'),
+            maxsize: 1024 * 1024 * 10, // 10MB
+            maxFiles: 3,
+            json: false,
+            timestamp: function() {
+                return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+            },
+            formatter: function(options) {
+                return [options.timestamp(),
+                    options.level.toUpperCase(),
+                    options.message
+                ].join(' ');
+            }
         })
     ]
 });
@@ -20,7 +34,7 @@ http.createServer(function(req, res) {
         'Content-Type': 'text/plain'
     });
     res.end('Hello world\n');
-}).listen(1337, '127.0.0.1');
+}).listen(config.get('listen_port'), config.get('listen_ip'));
 
 
-console.log('Server runinig at 127.0.0.1');
+logger.info('Server runinig at 127.0.0.1');
