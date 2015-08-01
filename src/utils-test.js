@@ -1,6 +1,6 @@
-var assert = require("assert");
-var utils = require('./utils');
-var moment = require('moment');
+var assert = require("assert"),
+    utils = require('./utils'),
+    moment = require('moment');
 
 describe('utils', function() {
     describe('#fixtime()', function() {
@@ -13,3 +13,6 @@ describe('utils', function() {
         })
     })
 });
+
+
+

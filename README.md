@@ -35,5 +35,7 @@ mixpanel: profile, event, notification
 - 日志模块：https://github.com/winstonjs/winston
 - 配置模块: https://www.npmjs.com/package/config
 - 时间模块：http://momentjs.cn/
+- 单元测试入门：https://cnodejs.org/topic/516526766d38277306c7d277
+- mysql upsert: http://stackoverflow.com/questions/4205181/insert-into-a-mysql-table-or-update-if-exists 
 
 - 统计云服务：https://mixpanel.com/help/reference/javascript

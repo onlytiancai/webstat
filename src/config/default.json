@@ -4,5 +4,10 @@
         "exception_path": "log/exception.log"
     },
     "listen_port": 1337,
-    "listen_ip": "localhost"
+    "listen_ip": "localhost",
+    "redis": {
+        "ip": "localhost",
+        "port": "6379",
+        "prefix": "webstat"
+    }
 }
