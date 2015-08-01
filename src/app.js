@@ -1,32 +1,6 @@
-var http = require('http');
-var winston = require('winston');
-var config = require('config');
-
-winston.handleExceptions(new winston.transports.File({
-    filename: config.get('log.exception_path'),
-    json: false
-}));
-
-var logger = new(winston.Logger)({
-    transports: [
-        new(winston.transports.Console)(),
-        new(winston.transports.File)({
-            filename: config.get('log.log_path'),
-            maxsize: 1024 * 1024 * 10, // 10MB
-            maxFiles: 3,
-            json: false,
-            timestamp: function() {
-                return new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
-            },
-            formatter: function(options) {
-                return [options.timestamp(),
-                    options.level.toUpperCase(),
-                    options.message
-                ].join(' ');
-            }
-        })
-    ]
-});
+var http = require('http'),
+    config = require('config'),
+    logger = require('./logger').logger;
 
 http.createServer(function(req, res) {
     logger.log('info', 'recive req: %s', req.url);
