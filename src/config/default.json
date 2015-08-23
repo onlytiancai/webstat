@@ -16,5 +16,6 @@
         "password": "password",
         "database": "webstat",
         "port": 3306
-    }
+    },
+    "event_fetch_count": 100
 }

@@ -33,6 +33,24 @@
 
 如果一条记录100字节(名称32，日期8，appid 4，值4，次数4)，约需93G磁盘存储
 
+设置环境
+
+    export NODE_ENV=production
+
+redis队列设计
+
+key `webstat:events`为一个list，item格式是`appid/name/created_at/value`, 
+web应用处理用户请求，用户请求来了直接向`webstat:events`里lpush数据，
+然后有个独立的worker进程，不断去`webstat:events`里rpop数据，每100条数据一批，
+合并相同的"appid,name,created_at"的value，然后写库, 如果rpop数据为空，
+则sleep 10秒。
+
+如果worker取出100条数据后，自己挂了，那么丢100条数据，不管了。
+
+    LPUSH webstat:events "0/btn_click/2015-01-01/15"
+    LPUSH webstat:events "0/btn_click/2015-01-01/15"
+    LRANGE webstat:events 1 10
+
 
 ### 产品借鉴
 
@@ -47,5 +65,6 @@ mixpanel: profile, event, notification
 - 时间模块：http://momentjs.cn/
 - 单元测试入门：https://cnodejs.org/topic/516526766d38277306c7d277
 - mysql upsert: http://stackoverflow.com/questions/4205181/insert-into-a-mysql-table-or-update-if-exists 
+- 用Nodejs连接MySQL: http://blog.fens.me/nodejs-mysql-intro/
 
 - 统计云服务：https://mixpanel.com/help/reference/javascript

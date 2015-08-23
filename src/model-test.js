@@ -29,3 +29,30 @@ describe('model', function() {
         });
     })
 });
+
+describe('model', function() {
+    describe('#merge_events()', function() {
+        it('merge_events', function() {
+            var args = ['0/a/2013-01-01/10', '0/a/2013-01-01/5', 
+                '1/a/2013-01-01/7'];
+            var ret = model.merge_events(args);
+            assert.equal(2, ret.length);
+            assert.equal(2, ret[0].hits);
+            assert.equal(15, ret[0].value);
+        })
+    })
+});
+
+describe('model', function() {
+    describe('#sync_to_db()', function() {
+        it('sync_to_db', function(done) {
+            model.sync_to_db(function(err){
+                    if (err) throw err;
+                    done();
+                }
+            );
+        });
+    })
+});
+
+
