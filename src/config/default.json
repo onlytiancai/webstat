@@ -9,5 +9,12 @@
         "ip": "localhost",
         "port": "6379",
         "prefix": "webstat"
+    },
+    "mysql_conn_args":{
+        "host": "localhost",
+        "user": "root",
+        "password": "password",
+        "database": "webstat",
+        "port": 3306
     }
 }
