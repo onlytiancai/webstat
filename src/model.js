@@ -3,6 +3,7 @@ var logger = require('./logger').logger;
 var config = require('config');
 var utils = require('./utils');
 var mysql = require('mysql');
+var async = require('async');
 
 
 var redis_client = redis.createClient(
@@ -37,21 +38,27 @@ var add_event = function(appid, name, value) {
 var fetch_events_from_redis = function(callback){
     var key = keyprefix + ':events';
     var fetch_count = config.get("event_fetch_count");
-    var ret = [];
+    var ret = [], empty = false;
 
-    var pop_callback = function(err, item){
-       if (item) ret.push(item);
-
-        // 取够一批或队列为空
-        if (--fetch_count <= 0 || item == null) {
-            logger.log("info", "fetch_events_from_redis:%s %s", fetch_count, ret.length);
-            callback(null, ret); 
-        }else {
-            redis_client.rpop(key, pop_callback);
+    async.whilst(
+        function(){ return fetch_count > 0 && !empty; },
+        function(callback){
+            fetch_count--; 
+            redis_client.rpop(key, function(err, item){
+                if (item) {
+                    ret.push(item);
+                }else {
+                    empty = true; 
+                }
+                callback(err); 
+            });
+        },
+        function(err){
+            logger.log("info", "fetch_events_from_redis:%s %s",
+                fetch_count, ret.length);
+            callback(err, ret); 
         }
-    };
-
-    redis_client.rpop(key, pop_callback);
+    );
 };
 
 
@@ -83,15 +90,23 @@ var merge_events = function(items){
 
 var sync_to_db = function(callback){
     fetch_events_from_redis(function(err, items){
+        if (err) callback(err);
         items = merge_events(items);
-        items.forEach(function(item){
-            add_event_to_db(item.appid, item.name, item.hits, item.value,
-                item.created_at, function(err){
-                    callback(err);
-                    logger.log("info", "sync_to_db:%o", item);
-                });
-        });
 
+        async.each(items, function(item, callback){
+            add_event_to_db(
+                item.appid,
+                item.name,
+                item.hits,
+                item.value,
+                item.created_at,
+                function(err){
+                    callback(err);
+                    logger.log("info", "sync_to_db:%s", item);
+                });
+        },function(err){
+            callback(err); 
+        });
     });
 };
 
