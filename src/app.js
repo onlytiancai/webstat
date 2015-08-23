@@ -1,20 +1,22 @@
-var http = require('http'),
+var app=require('express')(); 
     config = require('config'),
     logger = require('./logger').logger,
     model = require('./model');
 
-var IP = config.get('listen_ip'),
-    PORT = config.get('listen_port');
+var ip = config.get('listen_ip'),
+    port = config.get('listen_port');
 
-http.createServer(function(req, res) {
-    logger.log('info', 'recive req: %s', req.url);
-    model.add_event(123, 'click', 30);
-    res.writeHead(200, {
-        'Content-Type': 'text/plain'
-    });
-    res.end('Hello world\n');
-}).listen(PORT, IP);
+
+app.get('/add_event/:appid([0-9]+)/:name([0-9a-zA-Z_-]+)/:value([0-9]+)', function(req, res){                                            
+    model.add_event(
+        req.params.appid,
+        req.params.name,
+        req.params.value
+        );
+    res.send('ok\n');
+});         
+
 model.run_syncdb_worker();
 
-
-logger.log('info', 'Server runinig at %s:%s', IP, PORT);
+logger.log('info', 'Server runinig at %s:%s', ip, port);
+app.listen(port, ip);

@@ -52,6 +52,11 @@ web应用处理用户请求，用户请求来了直接向`webstat:events`里lpus
     LRANGE webstat:events 1 10
 
 
+使用express路由
+
+    app.get('/add_event/:appid([0-9]+)/:name([0-9a-zA-Z_-]+)/:value([0-9]+)', function(req, res){                                            
+    curl localhost:1337/add_event/100/btn_click/100
+
 ### 产品借鉴
 
 mixpanel: profile, event, notification

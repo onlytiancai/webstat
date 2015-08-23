@@ -9,7 +9,9 @@ winston.handleExceptions(new winston.transports.File({
 
 var logger = new(winston.Logger)({
     transports: [
-        new(winston.transports.Console)(),
+        new(winston.transports.Console)({
+            level: config.get('log.level') 
+        }),
         new(winston.transports.File)({
             filename: config.get('log.log_path'),
             maxsize: 1024 * 1024 * 10, // 10MB
@@ -23,7 +25,8 @@ var logger = new(winston.Logger)({
                     options.level.toUpperCase(),
                     options.message
                 ].join(' ');
-            }
+            },
+            level: config.get('log.level') 
         })
     ]
 });

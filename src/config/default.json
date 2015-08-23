@@ -1,7 +1,8 @@
 {
     "log": {
         "log_path": "log/log.log",
-        "exception_path": "log/exception.log"
+        "exception_path": "log/exception.log",
+        "level": "debug"
     },
     "listen_port": 1337,
     "listen_ip": "localhost",

@@ -12,7 +12,7 @@ var keyprefix = config.get('redis.prefix');
 
 
 redis_client.on("error", function(err) {
-    logger.log('info', 'redis error: %s', err);
+    logger.log('error', 'redis error: %s', err);
 });
 
 // 写如redis队列
@@ -29,7 +29,8 @@ var add_event = function(appid, name, value) {
 
     var key = keyprefix + ':events';
     var value = [appid, name, utils.fixtime(), value].join('/');
-
+    
+    logger.log("debug", "add_event:%s", value);
     redis_client.lpush(key, value);
     return 0;
 };
@@ -55,7 +56,7 @@ var fetch_events_from_redis = function(callback){
         },
         function(err){
             logger.log(
-                "info",
+                "debug",
                 "fetch_events_from_redis:len=%s empty=%s",
                 ret.length, empty);
             callback(err, ret, empty); 
@@ -77,7 +78,7 @@ var merge_events = function(items){
         var key = [appid, name, created_at].join('/');
 
         if (!map.hasOwnProperty(key)) {
-            logger.log("info", "merge_events:%s", key);
+            logger.log("debug", "merge_events:%s", key);
             map[key] = {appid: appid, name: name, created_at: created_at,
                 hits: 1, value: value};
             ret.push(map[key]);
@@ -106,7 +107,7 @@ var sync_to_db = function(callback){
                 item.created_at,
                 function(err){
                     callback(err);
-                    logger.log("info", "sync_to_db:%s", item);
+                    logger.log("info", "sync_to_db:", item);
                 });
         },function(err){
             if (!empty) {
@@ -121,7 +122,7 @@ var sync_to_db = function(callback){
 
 
 var run_syncdb_worker = function(){
-    logger.info("run_syncdb_worker ing");
+    logger.debug("run_syncdb_worker ing");
     var worker_interval = config.get("worker_interval");
     sync_to_db(function(err){
         setTimeout(function(){
