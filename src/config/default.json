@@ -17,5 +17,6 @@
         "database": "webstat",
         "port": 3306
     },
-    "event_fetch_count": 100
+    "event_fetch_count": 10,
+    "worker_interval": 10
 }

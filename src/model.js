@@ -54,9 +54,11 @@ var fetch_events_from_redis = function(callback){
             });
         },
         function(err){
-            logger.log("info", "fetch_events_from_redis:%s %s",
-                fetch_count, ret.length);
-            callback(err, ret); 
+            logger.log(
+                "info",
+                "fetch_events_from_redis:len=%s empty=%s",
+                ret.length, empty);
+            callback(err, ret, empty); 
         }
     );
 };
@@ -88,8 +90,10 @@ var merge_events = function(items){
     return ret;
 };
 
+
+// 从redis取数据，刷新到mysql，一直取到队列为空
 var sync_to_db = function(callback){
-    fetch_events_from_redis(function(err, items){
+    fetch_events_from_redis(function(err, items, empty){
         if (err) callback(err);
         items = merge_events(items);
 
@@ -105,8 +109,24 @@ var sync_to_db = function(callback){
                     logger.log("info", "sync_to_db:%s", item);
                 });
         },function(err){
-            callback(err); 
+            if (!empty) {
+                sync_to_db(callback);
+            }else {
+                callback(err); 
+            }
         });
+    });
+};
+
+
+
+var run_syncdb_worker = function(){
+    logger.info("run_syncdb_worker ing");
+    var worker_interval = config.get("worker_interval");
+    sync_to_db(function(err){
+        setTimeout(function(){
+            run_syncdb_worker(); 
+        }, worker_interval); 
     });
 };
 
@@ -144,3 +164,4 @@ exports.add_event_to_db = add_event_to_db;
 exports.add_event = add_event;
 exports.merge_events = merge_events;
 exports.sync_to_db = sync_to_db;
+exports.run_syncdb_worker = run_syncdb_worker;

@@ -14,6 +14,7 @@ http.createServer(function(req, res) {
     });
     res.end('Hello world\n');
 }).listen(PORT, IP);
+model.run_syncdb_worker();
 
 
 logger.log('info', 'Server runinig at %s:%s', IP, PORT);
