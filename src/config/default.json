@@ -19,5 +19,5 @@
         "port": 3306
     },
     "event_fetch_count": 10,
-    "worker_interval": 10
+    "worker_interval": 10000
 }

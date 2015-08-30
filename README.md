@@ -33,9 +33,16 @@
 
 如果一条记录100字节(名称32，日期8，appid 4，值4，次数4)，约需93G磁盘存储
 
-设置环境
+
+测试环境启动：
+
+    supervisor app.js
+
+正式环境运行：
 
     export NODE_ENV=production
+    forever start app.js
+
 
 redis队列设计
 
@@ -57,6 +64,27 @@ web应用处理用户请求，用户请求来了直接向`webstat:events`里lpus
     app.get('/add_event/:appid([0-9]+)/:name([0-9a-zA-Z_-]+)/:value([0-9]+)', function(req, res){                                            
     curl localhost:1337/add_event/100/btn_click/100
 
+nginx配置
+
+    server {
+        listen       80;
+        server_name  webstat.ihuhao.com;
+
+        location / {
+            proxy_pass   http://127.0.0.1:8004;
+            proxy_set_header    Host             $host;
+            proxy_set_header    X-Real-IP        $remote_addr;
+            proxy_set_header    X-Forwarded-For  $proxy_add_x_forwarded_for;
+        }
+
+
+        location /static/ {
+            alias /root/src/webstat/src/static/;
+            expires 1h;
+        }
+    }
+
+
 ### 产品借鉴
 
 mixpanel: profile, event, notification
@@ -71,5 +99,6 @@ mixpanel: profile, event, notification
 - 单元测试入门：https://cnodejs.org/topic/516526766d38277306c7d277
 - mysql upsert: http://stackoverflow.com/questions/4205181/insert-into-a-mysql-table-or-update-if-exists 
 - 用Nodejs连接MySQL: http://blog.fens.me/nodejs-mysql-intro/
+- 进程管理：https://github.com/petruisfan/node-supervisor https://github.com/foreverjs/forever  https://github.com/Unitech/PM2
 
 - 统计云服务：https://mixpanel.com/help/reference/javascript

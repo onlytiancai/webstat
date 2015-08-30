@@ -1,9 +1,9 @@
-var redis = require("redis");
-var logger = require('./logger').logger;
-var config = require('config');
-var utils = require('./utils');
-var mysql = require('mysql');
-var async = require('async');
+var redis = require("redis"),
+    logger = require('./logger').logger,
+    config = require('config'),
+    utils = require('./utils'),
+    mysql = require('mysql'),
+    async = require('async');
 
 
 var redis_client = redis.createClient(
@@ -110,6 +110,7 @@ var sync_to_db = function(callback){
                     logger.log("info", "sync_to_db:", item);
                 });
         },function(err){
+            if (err) return callback(err);
             if (!empty) {
                 sync_to_db(callback);
             }else {
@@ -125,6 +126,7 @@ var run_syncdb_worker = function(){
     logger.debug("run_syncdb_worker ing");
     var worker_interval = config.get("worker_interval");
     sync_to_db(function(err){
+        if (err) logger.error("syncdb error:" + err);
         setTimeout(function(){
             run_syncdb_worker(); 
         }, worker_interval); 
