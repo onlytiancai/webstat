@@ -102,3 +102,109 @@ mixpanel: profile, event, notification
 - 进程管理：https://github.com/petruisfan/node-supervisor https://github.com/foreverjs/forever  https://github.com/Unitech/PM2
 
 - 统计云服务：https://mixpanel.com/help/reference/javascript
+
+### require
+async moment config winston mocha express
+
+### 新表结构
+
+events
+    - app_id
+    - distinct_id 
+    - event_name
+    - created_on
+    - properties // json, key: value
+
+event_names:
+    - app_id
+    - event_name
+
+properties
+    - app_id
+    - event_name
+    - property_name
+
+property_values
+    - app_id
+    - event_name
+    - property_name
+    - value
+示例：
+
+    获取某时段某事件的次数
+    select count(*) from events where app_id = ? and created_on >= ? 
+        and created_on <= ?
+
+    获取某时段某事件的人数 
+    select count(distinct(distinct_id)) from events where app_id = ? 
+        and created_on >= ? and created_on <= ?
+
+    获得不同城市的访客3月份的下载量
+    events = select properties from events where app_id = ? 
+        and created_on >= ? and created_on <= ?
+    
+    cities = defaultdict(int)
+    for event in events:
+        if 'city' in  event.properties:
+            city = event.properties['city']
+            cities[city] += 1
+
+    return cities 
+
+    获得不同城市的访客3月份里每天的下载量
+    // not imp
+
+    获得访客3月份下载资源消耗的总积分
+    events = select properties from events where app_id = ? 
+        and created_on >= ? and created_on <= ?
+    
+    type = 'sum'
+    metrics = 'score' 
+    ret = 0
+
+    for event in events:
+        if metrics in  event.properties and isdigit(event.properties[metrics]):
+            value = int(event.properties[metrics])
+            ret += value
+
+    return ret
+
+    获得北、上、广、深的用户3月份的总计下载量
+     events = select properties from events where app_id = ? 
+        and created_on >= ? and created_on <= ?
+   
+    where = "city in ('a', 'a', 'c')
+    ret = 0
+
+    for event in events:
+        if 'city' in  event.properties:
+            city = event.properties['city']
+            if city in (a, b, c):
+                ret += 1
+
+    return ret
+
+
+    获取某app_id的事件列表
+    select event_name from event_names where app_id = ?
+
+    获取某app_id某事件的属性列表
+    select property_name from properties where app_id = ? and event_name = ?
+
+    获取某app_id某事件的某属性的值列表 
+    select value from property_values where app_id = ? and event_name = ? and 
+        property_name = ?
+
+    收集事件
+    app_id, event_name, properties, created_on = inputs()
+
+    if not exists_event_name(app_id, event_name):
+        add_event_name(app_id, event_name)
+
+    for key, value in properties:
+        if not exists_property(app_id, event_name, key):
+            add_property_name(app_id, event_name, key)
+        if not exists_property_value(app_id, event_name, key, value):
+            add_property_value(app_id, event_name, key, value)
+
+    add_event(app_id, event_name, properties, created_on)
