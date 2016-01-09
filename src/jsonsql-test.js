@@ -1,3 +1,5 @@
+/* 实现用类似sql的where条件语法来对JSON对象数组进行过滤，感谢jsep。
+ * */
 var jsep = require('jsep');
 jsep.addBinaryOp("in", 10);
 jsep.addBinaryOp("like", 10);
@@ -69,7 +71,9 @@ function parse(data, ast) {
 
 }
 
-function jsonWhere(ast) {
+function jsonWhere(cond) {
+    var ast = jsep(cond);
+
     return function(data) {
         try{ return parse(data, ast); }
         catch(e) { 
@@ -79,11 +83,9 @@ function jsonWhere(ast) {
     };
 }
 
-
 function log(cond){
-    var ast = jsep(cond);
     console.log(cond);
-    data.filter(jsonWhere(ast))
+    data.filter(jsonWhere(cond))
     .map(function(x){
         console.log("\t" + JSON.stringify(x).substring(0, 100)); 
     });
