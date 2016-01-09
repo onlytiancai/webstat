@@ -10,60 +10,85 @@ var data = [
     {name:"Alice",age:30, email: ["alice@searchjs.com","alice@gmail.com"], cars: [{brand: 'BMW', cds: [{title:'Best Of 2015'}, {title:'Best Of 2016'}]}, {brand: 'Porsche'}]}
 ];
 
-function jsonWhere(cond) {
-    return function(data) {
-        with(data) {
-            try { return eval(cond); }
-            catch(e) { return false; }
+function parse(data, ast) {
+    if (ast.type == 'BinaryExpression') {
+        var right = ast.right.value;
+        if (ast.right.type == 'UnaryExpression') {
+            right = -ast.right.argument.value;
         }
-    };
+        switch(ast.operator) {
+            case "==":
+                return data[ast.left.name] == right;
+            case "!=":
+                return data[ast.left.name] != right;
+            case ">":
+                return data[ast.left.name] > right;
+            case "<":
+                return data[ast.left.name] < right;
+            case "<=":
+                return data[ast.left.name] <= right;
+            case ">=":
+                return data[ast.left.name] >= right;
+            case "in":
+                var arr = right.split(',');
+                var name = data[ast.left.name].toString();
+                return arr.filter(function(x){ return x.trim() == name}).length > 0;
+            case "like":
+                var name = data[ast.left.name].toString();
+                return name.indexOf(right.toString()) > -1;
+            default:
+                throw new Error("unknow op: " + ast.operator);
+        }
+    } else if(ast.type == 'LogicalExpression') {
+        switch(ast.operator) { 
+            case "&&":
+                var left = parse(data, ast.left);
+                var right = parse(data, ast.right);
+                return left && right;
+            case "||":
+                var left = parse(data, ast.left);
+                var right = parse(data, ast.right);
+                return left || right;
+            default: 
+                throw new Error("unknow op: " + ast.operator);
+        }
+    } else if(ast.type == 'UnaryExpression') {
+        switch(ast.operator) { 
+            case "!":
+                var arg = parse(data, ast.argument);
+                return !arg;
+            case "-":
+                return -ast.argument.value;
+            default: 
+                throw new Error("unknow op: " + ast.operator);
+        }
+
+    }else {
+        throw new Error("unknow type: " + ast.type);
+    }
+
 }
-/*
- *
- * { type: 'BinaryExpression',
- *   operator: '==',
- *     left: { type: 'Identifier', name: 'name' },
- *       right: { type: 'Literal', value: 'Alice', raw: '\'Alice\'' } }
- *
- * */
-function jsonWhere2(ast) {
+
+function jsonWhere(ast) {
     return function(data) {
-        if (ast.type == 'BinaryExpression') {
-            switch(ast.operator) {
-                case "==":
-                    return data[ast.left.name] == ast.right.value;
-                case "!=":
-                    return data[ast.left.name] != ast.right.value;
-                case ">":
-                    return data[ast.left.name] > ast.right.value;
-                case "<":
-                    return data[ast.left.name] < ast.right.value;
-                case "<=":
-                    return data[ast.left.name] <= ast.right.value;
-                case ">=":
-                    return data[ast.left.name] >= ast.right.value;
-                case "in":
-                    var arr = ast.right.value.split(',');
-                    var name = data[ast.left.name].toString();
-                    return arr.filter(function(x){ return x.trim() == name}).length > 0;
-                case "like":
-                    var name = data[ast.left.name].toString();
-                    return name.indexOf(ast.right.value.toString()) > -1;
-                default:
-                    throw new Error("unknow op: " + ast.operator);
-            }
+        try{ return parse(data, ast); }
+        catch(e) { 
+            console.error(e);
+            return false; 
         }
     };
 }
 
 
 function log(cond){
-    console.log(cond, data.filter(jsonWhere(cond)));
     var ast = jsep(cond);
-    console.log(ast);
-    console.log(cond, data.filter(jsonWhere2(ast)));
+    console.log(cond);
+    data.filter(jsonWhere(ast))
+    .map(function(x){
+        console.log("\t" + JSON.stringify(x).substring(0, 100)); 
+    });
 }
-/*
+
 log("name == 'Alice'");
 log("name != 'Alice'");
 log("age > 30");
@@ -72,6 +97,8 @@ log("age < 30");
 log("age <= 30");
 log("age in '25, 30'");
 log("name like 'lice'");
-*/
 log("age >= 30 && male == true");
-//log("(age >= 30 && (email.indexOf('carrie') != -1) || age < 31)");
+log("age >= 30 || male == true");
+log("age >= 30 || !(male == true)");
+log("age >= 30 && email != 1 || age < 31");
+log("age > -30");
