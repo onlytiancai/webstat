@@ -108,27 +108,28 @@ async moment config winston mocha express
 
 ### 新表结构
 
-events
-    - app_id
-    - distinct_id 
-    - event_name
-    - created_on
-    - properties // json, key: value
+    events
+        - app_id
+        - distinct_id 
+        - event_name
+        - created_on
+        - properties // json, key: value
 
-event_names:
-    - app_id
-    - event_name
+    event_names:
+        - app_id
+        - event_name
 
-properties
-    - app_id
-    - event_name
-    - property_name
+    properties
+        - app_id
+        - event_name
+        - property_name
 
-property_values
-    - app_id
-    - event_name
-    - property_name
-    - value
+    property_values
+        - app_id
+        - event_name
+        - property_name
+        - value
+
 示例：
 
     获取某时段某事件的次数
