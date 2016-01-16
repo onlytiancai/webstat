@@ -19,17 +19,9 @@ exports.fixtime = function(input, fix) {
 
 /* 执行SQL语句
  * */
-exports.execute_sql = function(sql, args, callback){
-    mysql_pool.getConnection(function (err, conn) {
-        if (err){
-            callback(err);
-            logger.log('error', 'mysql error: %s', err);
-            return;
-        }
 
-        conn.query(sql, args, function(err, res){
-            conn.release(); 
-            callback(err);
-        });
+exports.execute_sql = function(sql, args, callback){
+    mysql_pool.query(sql, args, function(err, rows, fields){
+        callback(err, rows, fields);
     });
 };
