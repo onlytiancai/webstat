@@ -100,6 +100,7 @@ mixpanel: profile, event, notification
 - mysql upsert: http://stackoverflow.com/questions/4205181/insert-into-a-mysql-table-or-update-if-exists 
 - 用Nodejs连接MySQL: http://blog.fens.me/nodejs-mysql-intro/
 - 进程管理：https://github.com/petruisfan/node-supervisor https://github.com/foreverjs/forever  https://github.com/Unitech/PM2
+- jshint vim: https://github.com/Shutnik/jshint2.vim
 
 - 统计云服务：https://mixpanel.com/help/reference/javascript
 
@@ -209,3 +210,8 @@ async moment config winston mocha express
             add_property_value(app_id, event_name, key, value)
 
     add_event(app_id, event_name, properties, created_on)
+
+### 参考项目
+测试，覆盖率
+https://github.com/expressjs/cookie-parser
+mocha --reporter spec --bail --check-leaks test/
