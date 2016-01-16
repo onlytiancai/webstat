@@ -18,5 +18,8 @@ app.get('/add_event/:appid([0-9]+)/:name([0-9a-zA-Z_-]+)/:value([0-9]+)', functi
 
 model.run_syncdb_worker();
 
-logger.log('info', 'Server runinig at %s:%s', ip, port);
-app.listen(port, ip);
+var server = app.listen(port, ip, function () {
+    var host = server.address().address;
+    var port = server.address().port;
+    logger.log('info', 'Server runinig at %s:%s', host, port);
+});
