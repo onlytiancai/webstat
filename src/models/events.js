@@ -63,15 +63,17 @@ function query(options, strWhere, callback) {
     }
 
     var sql = 'select * from events where app_id = ? and user_id = ? and ' +
-        'event_name = ? and event_time >= ? and event_time >= ?';
+        'event_name = ? and event_time >= ? and event_time <= ?';
     var args = [app_id, user_id, event_name, from_date.toDate(), to_date.toDate()];
 
     utils.execute_sql(sql, args, function(err, rows, fields){
         if (err) return callback(err);
+        if (rows.length == 0) return callback(null, []);
+
         var data = [];
         rows.forEach(function(row){
             var properties = JSON.parse(row.properties); 
-            properties.value = row.value;
+            properties.value = row.event_value;
             properties.date = moment(row.event_time).format('YYYY-MM-DD');
             properties.hour = moment(row.event_time).format('hh');
             if (jsonWhere(strWhere)(properties)) {
@@ -81,18 +83,20 @@ function query(options, strWhere, callback) {
 
         var groups = _(data).groupBy(groupOn); // TODO; groupOn err
         var result = _(groups).map(function(g, key) {
-            var ret = {groupOn: key};
+            var ret = {};
+            ret[groupOn] = key;
             g = _.pluck(g, metrics);
+            g = _.map(g, function(x) {return parseInt(x)});
             switch (type){
                 case "count":
                     ret[metrics] = g.length;
                     break;
-                case "sum": 
+                case "sum":
                     ret[metrics] = _(g).reduce(function(m, x) { return m + x; }, 0);
                     break;
                 case "avg":
                     ret[metrics] = _(g).reduce(function(m, x) { return m + x; }, 0);
-                    ret[metrics] = ret[metrics] / g.length === 0 ? 1 : g.length;
+                    ret[metrics] = ret[metrics] / (g.length === 0 ? 1 : g.length);
                     break;
                 case "min":
                     ret[metrics] = _.min(g);

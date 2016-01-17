@@ -39,6 +39,24 @@ describe('events', function(){
         });
     }
 
+    function query(type, metrics, callback){
+        events.query({
+            app_id: app_id,
+            user_id: user_id,
+            event_name: event_name,
+            from_date: moment().format('YYYY-MM-DD'),
+            to_date: moment().format('YYYY-MM-DD'),
+            type: type,
+            metrics: metrics 
+        },
+        'name == "express"',
+        function(err, data){
+            if (err) throw err;
+            console.log(data);
+            callback(data);
+        });
+    }
+
     it('track ing', function(done){
         track({
             name: 'node-uuid',
@@ -61,22 +79,38 @@ describe('events', function(){
                 }, 3, callback);
             }
         ], function(){
-            events.query({
-                app_id: app_id,
-                user_id: user_id,
-                event_name: event_name,
-                from_date: '2016-01-01',
-                to_date: '2016-01-01',
-                type: 'count',
-                metrics: 'value'
-            },
-            'name == "express"',
-            function(err, data){
-                if (err) throw err;
-                console.log(data);
-                assert.equal(1, data.length);
-                done();
-            });
+            async.series([
+                function(callback){
+                    query('count', 'value', function(data){
+                        assert.equal(2, data[0].value)
+                        callback(null); 
+                    }); 
+                },
+                function(callback){
+                    query('sum', 'value', function(data){
+                        assert.equal(10, data[0].value)
+                        callback(null); 
+                    }); 
+                },
+                function(callback){
+                    query('avg', 'value', function(data){
+                        assert.equal(5, data[0].value)
+                        callback(null); 
+                    }); 
+                }, 
+                function(callback){
+                    query('min', 'value', function(data){
+                        assert.equal(2, data[0].value)
+                        callback(null); 
+                    }); 
+                },
+                function(callback){
+                    query('max', 'value', function(data){
+                        assert.equal(7, data[0].value)
+                        callback(null); 
+                    }); 
+                } 
+            ],function(){done()});
         });
     });
 });
