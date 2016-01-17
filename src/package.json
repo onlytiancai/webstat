@@ -14,6 +14,8 @@
     "jsep": "~0.3.0"
   },
   "devDependencies": {
-    "node-uuid": "~1.4.7"
+    "node-uuid": "~1.4.7",
+    "underscore": "~1.8.3",
+    "moment": "~2.11.1"
   }
 }
