@@ -2,10 +2,12 @@ var winston = require('winston'),
     config = require('config'),
     moment = require('moment');
 
+/* 暂时去掉这个注释，否则mocha测试时，不能够暴露异常
 winston.handleExceptions(new winston.transports.File({
     filename: config.get('log.exception_path'),
     json: false
 }));
+*/
 
 var logger = new(winston.Logger)({
     transports: [
