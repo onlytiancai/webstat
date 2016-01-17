@@ -52,7 +52,7 @@ describe('events', function(){
         'name == "express"',
         function(err, data){
             if (err) throw err;
-            console.log(data);
+            console.log(type, metrics, data);
             callback(data);
         });
     }
@@ -99,18 +99,18 @@ describe('events', function(){
                     }); 
                 }, 
                 function(callback){
-                    query('min', 'value', function(data){
-                        assert.equal(2, data[0].value)
-                        callback(null); 
-                    }); 
-                },
-                function(callback){
                     query('max', 'value', function(data){
                         assert.equal(7, data[0].value)
                         callback(null); 
                     }); 
-                } 
-            ],function(){done()});
+                },
+                function(callback){
+                    query('min', 'value', function(data){
+                        assert.equal(3, data[0].value)
+                        callback(null); 
+                    }); 
+                }
+            ], done);
         });
     });
 });
