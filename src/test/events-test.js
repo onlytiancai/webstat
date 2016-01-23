@@ -77,18 +77,30 @@ describe('events', function(){
                     name: 'express',
                     url: 'https://github.com/strongloop/express.git'
                 }, 3, callback);
+            },
+            function(callback){
+                track({
+                    name: 'express',
+                    url: 'https://github.com/strongloop/express.git'
+                }, 6, callback);
+            },
+            function(callback){
+                track({
+                    name: 'express',
+                    url: 'https://github.com/strongloop/express.git'
+                }, 4, callback);
             }
         ], function(){
             async.series([
                 function(callback){
                     query('count', 'value', function(data){
-                        assert.equal(2, data[0].value)
+                        assert.equal(4, data[0].value)
                         callback(null); 
                     }); 
                 },
                 function(callback){
                     query('sum', 'value', function(data){
-                        assert.equal(10, data[0].value)
+                        assert.equal(20, data[0].value)
                         callback(null); 
                     }); 
                 },
