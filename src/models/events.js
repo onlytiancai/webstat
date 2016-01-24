@@ -36,62 +36,39 @@ function track(options, properties, callback) {
     });
 }
 
+// TODO: 有多余计算
+function calcMemo(memo, list, metrics, groupOn, key){
+    var count = 0, sum = 0, avg = 0, min = 0,
+        max = 0, found = undefined; 
+
+    list = _.pluck(list, metrics);
+    list = _.map(list, function(x) { return parseInt(x, 10); });
+    count = list.length;
+    sum = _(list).reduce(function(m, x) { return m + x; }, 0);
+    max = _.max(list);
+    min = _.min(list);
+
+    found = _.filter(memo, function(x) {return x[groupOn] == key;});
+
+    if (found.length > 0) {
+        count += found[0]['count_'];
+        sum += found[0]['sum_'];
+        avg = sum / count;
+        max = _.max([max, found[0]['max_']]);
+        min = _.min([min, found[0]['min_']]);
+    }
+
+    return { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
+}
+
 function group(memo, data, type, groupOn, metrics) {
     var groups = _(data).groupBy(groupOn); // TODO; groupOn err
-    var result = _(groups).map(function(g, key) {
-        var ret = {};
+    return _(groups).map(function(g, key) {
+        var ret  = calcMemo(memo, g, metrics, groupOn, key);
         ret[groupOn] = key;
-        g = _.pluck(g, metrics);
-        g = _.map(g, function(x) { return parseInt(x, 10); });
-
-        var memo_obj = _.filter(memo, function(x) {return x[groupOn] == key;});
-        var memo_value = undefined, memo_count = undefined, memo_sum = undefined;
-
-        if (memo_obj.length > 0) {
-            memo_value = memo_obj[0][metrics];
-            memo_count = memo_obj[0]['count_'];
-            memo_sum = memo_obj[0]['sum_'];
-        }
-
-        ret['count_'] = g.length;
-        if (memo_count != undefined) {
-            ret['count_'] += memo_count;
-        }
-
-        ret['sum_'] = _(g).reduce(function(m, x) { return m + x; }, 0);
-        if (memo_sum != undefined) {
-            ret['sum_'] += memo_sum;
-        }
-
-        switch (type){
-            case "count":
-                ret[metrics] = ret['count_']; 
-                break;
-            case "sum":
-                ret[metrics] = ret['sum_']; 
-                break;
-            case "avg":
-                ret[metrics] = ret['sum_'] / ret['count_']; 
-                break;
-            case "min":
-                ret[metrics] = _.min(g);
-                if (memo_value != undefined) {
-                    ret[metrics] = _.min([memo_value, ret[metrics]]);
-                }
-                break;
-            case "max":
-                ret[metrics] = _.max(g);
-                if (memo_value != undefined) {
-                    ret[metrics] = _.max([memo_value, ret[metrics]]);
-                }
-                break;
-            default:
-                throw Error("unknow type: " + type);
-        }
+        ret[metrics] = ret[type + '_'];
         return ret;
     });
-
-    return result;
 }
 
 function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) {
@@ -163,6 +140,11 @@ function query(options, strWhere, callback) {
     if (groupOn == 'hour' && diff.days() > 1) {
         throw Error('date diff to far when on = hour'); // TODO 
     }
+
+    if(!_.contains(['count', 'sum', 'avg', 'min', 'max'], type)){
+        throw Error("arg type err: " + type); 
+    }
+
 
     var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
     processData([], type, groupOn, strWhere, metrics, fnGetRows, callback);
