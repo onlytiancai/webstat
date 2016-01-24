@@ -8,6 +8,7 @@ var jsonWhere = require('../libs/json-where');
 var logger = require('../logger').logger;
 var _ = require('underscore');
 var moment  = require('moment');
+var async = require('async');
 
 /*
 * 跟踪一个事件
@@ -61,28 +62,15 @@ function calcMemo(memo, list, metrics, groupOn, key){
     return { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
 }
 
-function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) {
-    getRows(function(err, rows){
-        if (err) return callback(err, null);
-        if (rows.length === 0){ // 分页取完所有数据
-            return callback(null, _.map(memo, function(x){
-                delete x['count_'];
-                delete x['sum_'];
-                delete x['avg_'];
-                delete x['max_'];
-                delete x['min_'];
-                return x;
-            }));
-        } 
-
-        var data = _.chain(rows).map(function(row){
-            var properties = JSON.parse(row.properties); 
-            properties.value = row.event_value;
-            properties.date = moment(row.event_time).format('YYYY-MM-DD');
-            properties.hour = moment(row.event_time).format('hh');
-            return properties;
-        })
-        .filter(jsonWhere(strWhere))
+function getData(rows, memo, metrics, groupOn, strWhere, type){
+    return _.chain(rows).map(function(row){
+        var properties = JSON.parse(row.properties); 
+        properties.value = row.event_value;
+        properties.date = moment(row.event_time).format('YYYY-MM-DD');
+        properties.hour = moment(row.event_time).format('hh');
+        return properties;
+    })
+    .filter(jsonWhere(strWhere))
         .groupBy(groupOn) 
         .map(function(g, key) {
             var ret  = calcMemo(memo, g, metrics, groupOn, key);
@@ -90,10 +78,7 @@ function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) 
             ret[metrics] = ret[type + '_'];
             return ret;
         })
-        .value();
-
-        processData(data, type, groupOn, strWhere, metrics, getRows, callback);
-    });
+    .value();
 }
 
 function getRows(app_id, user_id, event_name, from_date, to_date) {
@@ -151,9 +136,32 @@ function query(options, strWhere, callback) {
 
     // TODO; groupOn err
 
-    var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
-    processData([], type, groupOn, strWhere, metrics, fnGetRows, callback);
+    var fn = getRows(app_id, user_id, event_name, from_date, to_date);
+    var stop = false;
+    var memo = [];
+    async.whilst(
+        function () { return !stop },
+        function (callback) {
+            fn(function(err, rows){
+                if (err) return callback(err, null);
+                stop = rows.length == 0;
+                if(rows.length == 0) return callback(null, memo);
 
+                memo = getData(rows, memo, metrics, groupOn, strWhere, type);
+                callback(null, memo);
+            });
+        },
+        function (err, n) {
+            return callback(err, _.map(memo, function(x){
+                delete x['count_'];
+                delete x['sum_'];
+                delete x['avg_'];
+                delete x['max_'];
+                delete x['min_'];
+                return x;
+            }));
+        }
+    );
 }
 
 /*
