@@ -38,7 +38,7 @@ function track(options, properties, callback) {
 }
 
 // TODO: 有多余计算
-function calcMemo(memo, list, metrics, groupOn, key){
+function calcData(memo, list, metrics, groupOn, key){
     var count = 0, sum = 0, avg = 0, min = 0,
         max = 0, found = undefined; 
 
@@ -72,13 +72,13 @@ function getData(metrics, groupOn, strWhere, type){
             return properties;
         })
         .filter(jsonWhere(strWhere))
-            .groupBy(groupOn) 
-            .map(function(g, key) {
-                var ret  = calcMemo(memo, g, metrics, groupOn, key);
-                ret[groupOn] = key;
-                ret[metrics] = ret[type + '_'];
-                return ret;
-            })
+        .groupBy(groupOn) 
+        .map(function(g, key) {
+            var ret  = calcData(memo, g, metrics, groupOn, key);
+            ret[groupOn] = key;
+            ret[metrics] = ret[type + '_'];
+            return ret;
+        })
         .value();
     };
 }
@@ -141,7 +141,7 @@ function query(options, strWhere, callback) {
     var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
     var fnGetData = getData(metrics, groupOn, strWhere, type);
     var stop = false;
-    var memo = [];
+    var memo = []; //必须外部变量hold住回调结果，否则就undefined了
     async.whilst(
         function () { return !stop },
         function (callback) {
