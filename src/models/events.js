@@ -62,23 +62,25 @@ function calcMemo(memo, list, metrics, groupOn, key){
     return { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
 }
 
-function getData(rows, memo, metrics, groupOn, strWhere, type){
-    return _.chain(rows).map(function(row){
-        var properties = JSON.parse(row.properties); 
-        properties.value = row.event_value;
-        properties.date = moment(row.event_time).format('YYYY-MM-DD');
-        properties.hour = moment(row.event_time).format('hh');
-        return properties;
-    })
-    .filter(jsonWhere(strWhere))
-        .groupBy(groupOn) 
-        .map(function(g, key) {
-            var ret  = calcMemo(memo, g, metrics, groupOn, key);
-            ret[groupOn] = key;
-            ret[metrics] = ret[type + '_'];
-            return ret;
+function getData(metrics, groupOn, strWhere, type){
+    return function(rows, memo){
+         return _.chain(rows).map(function(row){
+            var properties = JSON.parse(row.properties); 
+            properties.value = row.event_value;
+            properties.date = moment(row.event_time).format('YYYY-MM-DD');
+            properties.hour = moment(row.event_time).format('hh');
+            return properties;
         })
-    .value();
+        .filter(jsonWhere(strWhere))
+            .groupBy(groupOn) 
+            .map(function(g, key) {
+                var ret  = calcMemo(memo, g, metrics, groupOn, key);
+                ret[groupOn] = key;
+                ret[metrics] = ret[type + '_'];
+                return ret;
+            })
+        .value();
+    };
 }
 
 function getRows(app_id, user_id, event_name, from_date, to_date) {
@@ -136,18 +138,19 @@ function query(options, strWhere, callback) {
 
     // TODO; groupOn err
 
-    var fn = getRows(app_id, user_id, event_name, from_date, to_date);
+    var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
+    var fnGetData = getData(metrics, groupOn, strWhere, type);
     var stop = false;
     var memo = [];
     async.whilst(
         function () { return !stop },
         function (callback) {
-            fn(function(err, rows){
+            fnGetRows(function(err, rows){
                 if (err) return callback(err, null);
                 stop = rows.length == 0;
                 if(rows.length == 0) return callback(null, memo);
 
-                memo = getData(rows, memo, metrics, groupOn, strWhere, type);
+                memo = fnGetData(rows, memo);
                 callback(null, memo);
             });
         },
