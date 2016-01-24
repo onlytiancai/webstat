@@ -73,21 +73,29 @@ function group(memo, data, type, groupOn, metrics) {
 
 function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) {
     getRows(function(err, rows){
+        var data, ret;
         if (err) return callback(err, null);
-        if (rows.length === 0) return callback(null, memo);
+        if (rows.length === 0){ // 分页取完所有数据
+            return callback(null, _.map(memo, function(x){
+                delete x['count_'];
+                delete x['sum_'];
+                delete x['avg_'];
+                delete x['max_'];
+                delete x['min_'];
+                return x;
+            }));
+        } 
 
-        var data = [];
-        rows.forEach(function(row){
+        data = _(rows).map(function(row){
             var properties = JSON.parse(row.properties); 
             properties.value = row.event_value;
             properties.date = moment(row.event_time).format('YYYY-MM-DD');
             properties.hour = moment(row.event_time).format('hh');
-            if (jsonWhere(strWhere)(properties)) {
-                data.push(properties); 
-            }
-        });
+            return properties;
+        })
+        .filter(jsonWhere(strWhere));
 
-        var ret = group(memo, data, type, groupOn, metrics);
+        ret = group(memo, data, type, groupOn, metrics);
         processData(ret, type, groupOn, strWhere, metrics, getRows, callback);
     });
 }
