@@ -61,19 +61,8 @@ function calcMemo(memo, list, metrics, groupOn, key){
     return { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
 }
 
-function group(memo, data, type, groupOn, metrics) {
-    var groups = _(data).groupBy(groupOn); // TODO; groupOn err
-    return _(groups).map(function(g, key) {
-        var ret  = calcMemo(memo, g, metrics, groupOn, key);
-        ret[groupOn] = key;
-        ret[metrics] = ret[type + '_'];
-        return ret;
-    });
-}
-
 function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) {
     getRows(function(err, rows){
-        var data, ret;
         if (err) return callback(err, null);
         if (rows.length === 0){ // 分页取完所有数据
             return callback(null, _.map(memo, function(x){
@@ -86,17 +75,24 @@ function processData(memo, type, groupOn, strWhere, metrics, getRows, callback) 
             }));
         } 
 
-        data = _(rows).map(function(row){
+        var data = _.chain(rows).map(function(row){
             var properties = JSON.parse(row.properties); 
             properties.value = row.event_value;
             properties.date = moment(row.event_time).format('YYYY-MM-DD');
             properties.hour = moment(row.event_time).format('hh');
             return properties;
         })
-        .filter(jsonWhere(strWhere));
+        .filter(jsonWhere(strWhere))
+        .groupBy(groupOn) 
+        .map(function(g, key) {
+            var ret  = calcMemo(memo, g, metrics, groupOn, key);
+            ret[groupOn] = key;
+            ret[metrics] = ret[type + '_'];
+            return ret;
+        })
+        .value();
 
-        ret = group(memo, data, type, groupOn, metrics);
-        processData(ret, type, groupOn, strWhere, metrics, getRows, callback);
+        processData(data, type, groupOn, strWhere, metrics, getRows, callback);
     });
 }
 
@@ -153,6 +149,7 @@ function query(options, strWhere, callback) {
         throw Error("arg type err: " + type); 
     }
 
+    // TODO; groupOn err
 
     var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
     processData([], type, groupOn, strWhere, metrics, fnGetRows, callback);
