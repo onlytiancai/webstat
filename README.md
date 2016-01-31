@@ -215,3 +215,9 @@ async moment config winston mocha express
 测试，覆盖率
 https://github.com/expressjs/cookie-parser
 mocha --reporter spec --bail --check-leaks test/
+
+== todo
+- 防止单IP请求量过大
+- 防止单请求返回过大数据
+- 存储层单点
+- 计算单元如何利用多核
