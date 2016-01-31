@@ -41,67 +41,41 @@ function track(options, properties, callback) {
 }
 
 // TODO: 有多余计算
-function calcData(memo, list, metrics, groupOn, key){
-    var count = 0, sum = 0, avg = 0, min = 0,
-        max = 0, found = null; 
+function calcData(metrics, groupOn, type){
+    return function(list, key) {
+        var count = 0, sum = 0, avg = 0, min = 0,
+            max = 0, found = null; 
 
-    list = _.pluck(list, metrics);
-    list = _.map(list, function(x) { return parseInt(x, 10); });
-    count = list.length;
-    sum = _(list).reduce(function(m, x) { return m + x; }, 0);
-    max = _.max(list);
-    min = _.min(list);
+        list = _.pluck(list, metrics);
+        list = _.map(list, function(x) { return parseInt(x, 10); });
+        count = list.length;
+        sum = _(list).reduce(function(m, x) { return m + x; }, 0);
+        max = _.max(list);
+        min = _.min(list);
 
-    found = _.filter(memo, function(x) {return x[groupOn] == key;});
+        var ret = { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
+        ret[groupOn] = key;
+        ret[metrics] = ret[type + '_'];
 
-    if (found.length > 0) {
-        count += found[0].count_;
-        sum += found[0].sum_;
-        avg = sum / count;
-        max = _.max([max, found[0].max_]);
-        min = _.min([min, found[0].min_]);
-    }
+        return ret;
+    };
+}
 
-    return { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
+function getPropertiesByRow(row) {
+    var properties = JSON.parse(row.properties); 
+    properties.value = row.event_value;
+    properties.date = moment(row.event_time).format('YYYY-MM-DD');
+    properties.hour = moment(row.event_time).format('hh');
+    return properties;
 }
 
 function getData(metrics, groupOn, strWhere, type){
     return function(rows, memo){
-         return _.chain(rows).map(function(row){
-            var properties = JSON.parse(row.properties); 
-            properties.value = row.event_value;
-            properties.date = moment(row.event_time).format('YYYY-MM-DD');
-            properties.hour = moment(row.event_time).format('hh');
-            return properties;
-        })
+         return _.chain(rows).map(getPropertiesByRow)
         .filter(jsonWhere(strWhere))
         .groupBy(groupOn) 
-        .map(function(g, key) {
-            var ret  = calcData(memo, g, metrics, groupOn, key);
-            ret[groupOn] = key;
-            ret[metrics] = ret[type + '_'];
-            return ret;
-        })
+        .map(calcData(memo, metrics, groupOn, type))
         .value();
-    };
-}
-
-function getRows(app_id, user_id, event_name, from_date, to_date) {
-    var page = 0, pageSize = 2;
-
-    return function(callback) {
-        var offset = page * pageSize;
-        page = page + 1;
-
-        db.fetch_events(
-            offset,
-            pageSize,
-            app_id,
-            user_id,
-            event_name,
-            from_date, 
-            to_date,
-            callback); 
     };
 }
 
@@ -138,32 +112,83 @@ function query(options, strWhere, callback) {
     }
 
     // TODO; groupOn err
+    
+    var page = 0, pageSize = 2;
+    var getRows = function(callback) {
+        var offset = page * pageSize;
+        page = page + 1;
 
-    var fnGetRows = getRows(app_id, user_id, event_name, from_date, to_date);
-    var fnGetData = getData(metrics, groupOn, strWhere, type);
-    var stop = false;
-    var memo = []; //必须外部变量hold住回调结果，否则就undefined了
+        db.fetch_events(
+            offset,
+            pageSize,
+            app_id,
+            user_id,
+            event_name,
+            from_date, 
+            to_date,
+            callback); 
+    };
+
+    var calcMemo = function(callback) {
+        getRows(function(err, rows){
+            if (err) return callback(err, null);
+
+            var ret = {rowLength: rows.length, memo: []};
+            if(rows.length === 0) return callback(null, ret);
+
+            ret.memo = _.chain(rows).map(getPropertiesByRow)
+            .filter(jsonWhere(strWhere))
+            .groupBy(groupOn) 
+            .map(calcData(metrics, groupOn, type))
+            .value();
+
+            callback(null, ret);
+        });
+    }
+    
+    var processResult = function(x){
+        delete x.count_;
+        delete x.sum_;
+        delete x.avg_;
+        delete x.max_;
+        delete x.min_;
+        return x;
+    };
+
+    var mergeData = function(data, newData, groupOn, metrics) {
+        _.each(newData, function(item){
+            var found = _.filter(data, function(x) {
+                return x[groupOn] == item[groupOn];
+            });
+
+            if (found.length > 0) {
+                found[0].count_ += item.count_;
+                found[0].sum_ += item.sum_;
+                found[0].avg_ = found[0].sum_ / found[0].count_;
+                found[0].max_ = _.max([item.max_, found[0].max_]);
+                found[0].min_ = _.min([item.min_, found[0].min_]);
+                found[0][metrics] = found[0][type + '_'];
+
+            }else {
+                data.push(item);
+            }
+        });
+        
+        return data;
+    };
+
+    var stop = false, data = []; //必须外部变量hold住回调结果，否则就undefined了
     async.whilst(
-        function (){ return !stop; },
-        function (callback) {
-            fnGetRows(function(err, rows){
-                if (err) return callback(err, null);
-                stop = rows.length === 0;
-                if(rows.length === 0) return callback(null, memo);
-
-                memo = fnGetData(rows, memo);
-                callback(null, memo);
+        function() { return !stop; },
+        function(callback) {
+            calcMemo(function(err, ret){
+                stop = ret.rowLength == 0;
+                data = mergeData(data, ret.memo, groupOn, metrics);
+                callback(err, data); 
             });
         },
         function (err, n) {
-            return callback(err, _.map(memo, function(x){
-                delete x.count_;
-                delete x.sum_;
-                delete x.avg_;
-                delete x.max_;
-                delete x.min_;
-                return x;
-            }));
+            return callback(err, _.map(data, processResult));
         }
     );
 }
