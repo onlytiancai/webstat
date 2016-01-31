@@ -28,32 +28,23 @@ function track(options, properties, callback) {
     properties = properties || {};
     properties = JSON.stringify(properties);
 
-    db.add_event(
-        app_id,
-        user_id,
-        event_name,
-        event_value,
-        event_time, 
-        properties,
-        callback);
+    db.add_event( app_id, user_id, event_name, event_value, event_time, 
+        properties, callback);
 
 }
 
 // TODO: 有多余计算
 function calcGroup(metrics, groupOn, type){
-    return function(list, key) {
-        var count = 0, sum = 0, avg = 0, min = 0,
-            max = 0, found = null; 
+    return function(group, groupKey) {
+        var ret = {}, list; 
 
-        list = _.pluck(list, metrics);
+        list = _.pluck(group, metrics);
         list = _.map(list, function(x) { return parseInt(x, 10); });
-        count = list.length;
-        sum = _(list).reduce(function(m, x) { return m + x; }, 0);
-        max = _.max(list);
-        min = _.min(list);
-
-        var ret = { count_: count, sum_: sum, avg_: avg, min_: min, max_: max };
-        ret[groupOn] = key;
+        ret.count_ = list.length;
+        ret.sum_ = _(list).reduce(function(m, x) { return m + x; }, 0);
+        ret.max_ = _.max(list);
+        ret.min_ = _.min(list);
+        ret[groupOn] = groupKey;
         ret[metrics] = ret[type + '_'];
 
         return ret;
